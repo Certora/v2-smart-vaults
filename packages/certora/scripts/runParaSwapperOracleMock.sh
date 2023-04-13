@@ -4,7 +4,7 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/swap/ParaswapSwap
             ./packages/certora/munged/SmartVault.sol \
             ./packages/certora/helpers/ERC20_A.sol \
             ./packages/certora/helpers/ERC20_B.sol \
-            ./node_modules/@mimic-fi/v2-price-oracle/contracts/oracle/PriceOracle.sol \
+            ./packages/certora/helpers/PriceOracle.sol \
 --verify ParaswapSwapper:./packages/certora/specs/Swapper.spec \
 --link \
     ParaswapSwapper:smartVault=SmartVault \
@@ -19,5 +19,6 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/swap/ParaswapSwap
 --loop_iter 3 \
 --optimistic_loop \
 --rule_sanity \
+--rule sanity \
 --settings -optimisticUnboundedHashing=true,-copyLoopUnroll=8 \
 --msg "Mimic ParaswapSwapper"
