@@ -5,10 +5,12 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/swap/ParaswapSwap
             ./packages/certora/helpers/ERC20_A.sol \
             ./packages/certora/helpers/ERC20_B.sol \
             ./packages/certora/helpers/PriceOracle.sol \
+            ./packages/certora/helpers/ParaswapSwapperCaller.sol \
 --verify ParaswapSwapper:./packages/certora/specs/Swapper.spec \
 --link \
     ParaswapSwapper:smartVault=SmartVault \
     SmartVault:priceOracle=PriceOracle \
+    ParaswapSwapperCaller:swapper=ParaswapSwapper \
 \
 --solc solc8.2 \
 --packages @openzeppelin=node_modules/@openzeppelin @mimic-fi=node_modules/@mimic-fi @chainlink=node_modules/@chainlink \
@@ -19,6 +21,5 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/swap/ParaswapSwap
 --loop_iter 3 \
 --optimistic_loop \
 --rule_sanity \
---rule sanity \
---settings -optimisticUnboundedHashing=true,-copyLoopUnroll=8 \
---msg "Mimic ParaswapSwapper"
+--settings -optimisticUnboundedHashing=true,-copyLoopUnroll=9 \
+--msg "Mimic ParaswapSwapper swapIntergrityTokenIn"
