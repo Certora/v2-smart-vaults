@@ -1,0 +1,17 @@
+--- ../../node_modules/@mimic-fi/v2-smart-vault/contracts/SmartVault.sol	2023-04-13 13:22:06.828270500 +0300
++++ 	2023-04-13 13:19:43.867631900 +0300
+@@ -30,10 +30,10 @@
+ import '@mimic-fi/v2-swap-connector/contracts/ISwapConnector.sol';
+ import '@mimic-fi/v2-registry/contracts/implementations/InitializableAuthorizedImplementation.sol';
+ 
+-import './ISmartVault.sol';
+-import './helpers/StrategyLib.sol';
+-import './helpers/SwapConnectorLib.sol';
+-import './helpers/BridgeConnectorLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/ISmartVault.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/StrategyLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/SwapConnectorLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/BridgeConnectorLib.sol';
+ 
+ /**
+  * @title Smart Vault
