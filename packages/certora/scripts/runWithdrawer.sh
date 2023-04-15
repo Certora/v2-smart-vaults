@@ -1,13 +1,12 @@
-certoraRun ./packages/balancer-fee-collector/contracts/actions/claim/Claimer.sol \
+certoraRun ./packages/balancer-fee-collector/contracts/actions/withdraw/Withdrawer.sol \
     ./packages/certora/munged/SmartVault.sol \
     ./packages/certora/helpers/ProtocolFeeWithdrawerMock.sol \
     ./node_modules/@mimic-fi/v2-price-oracle/contracts/oracle/PriceOracle.sol \
     ./packages/certora/helpers/ERC20_A.sol \
     ./packages/certora/helpers/ERC20_B.sol \
---verify Claimer:./packages/certora/specs/Claimer.spec \
+--verify Withdrawer:./packages/certora/specs/Withdrawer.spec \
 --link \
-    Claimer:smartVault=SmartVault \
-    Claimer:protocolFeeWithdrawer=ProtocolFeeWithdrawerMock \
+    Withdrawer:smartVault=SmartVault \
     SmartVault:priceOracle=PriceOracle \
 --packages @openzeppelin=node_modules/@openzeppelin @mimic-fi=node_modules/@mimic-fi @chainlink=node_modules/@chainlink \
 --path . \
@@ -15,8 +14,8 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/claim/Claimer.sol
 --cloud pre_cvl2 \
 --loop_iter 3 \
 --optimistic_loop \
---settings -optimisticUnboundedHashing=true,-copyLoopUnroll=8,-t=800,-mediumTimeout=20,-depth=20 \
---msg "Claimer sanity"
+--settings -optimisticUnboundedHashing=true,-copyLoopUnroll=8 \
+--msg "Withdrawer sanity"
 
 
-#sanity with high TO https://prover.certora.com/output/47234/ba03f62e52f54d9d92d69754b66a685b?anonymousKey=4f38709d03a16d00fcb8fe1dee13dbd9f9972732
+#sanity https://prover.certora.com/output/47234/589c41b88b5b4c5da0959e521818103c?anonymousKey=5fc0415a9a93315cdb9e1a03eb00da24106e27bd
