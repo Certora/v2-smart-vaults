@@ -2,6 +2,9 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
+import '../../balancer-fee-collector/contracts/actions/claim/IProtocolFeeWithdrawer.sol';
+
 
 /* symbolic representaiton of a smart vault for verification: 
 
@@ -44,6 +47,10 @@ interface ISmartVault  {
 
 
      function feeCollector() external view returns (address);    
+
+    function call(address target, address token, uint256 amount, uint256 value, bytes memory data)
+        external
+        returns (bytes memory result);
 
 }
 
@@ -125,5 +132,29 @@ contract SymbolicSmartVault is ISmartVault {
              return amount;
     }
 
+    function call(address target, address token, uint256 amount, uint256 value, bytes memory data)
+        external
+        override
+        returns (bytes memory result)
+    {
+        bytes memory callData = _buildData(token, amount);
+        result = Address.functionCallWithValue(target, callData, value, 'SMART_VAULT_ARBITRARY_CALL_FAIL');
+        // emit Call(target, callData, value, result, data);
+    }
 
+    function _buildData(address token, uint256 amount) internal view returns (bytes memory) {
+        address[] memory tokens = new address[](1);
+        tokens[0] = token;
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+
+        return
+            abi.encodeWithSelector(
+                IProtocolFeeWithdrawer.withdrawCollectedFees.selector,
+                tokens,
+                amounts,
+                address(this)
+            );
+    }
 }
