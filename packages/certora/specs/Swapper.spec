@@ -1,4 +1,3 @@
-
 using ERC20Helper as helper;
 using SymbolicSmartVault as symbolicVault;
 

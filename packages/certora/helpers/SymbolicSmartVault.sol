@@ -56,7 +56,7 @@ contract SymbolicSmartVault is ISmartVault {
 
     address public wrappedNativeToken;
 
-    address public feeCollector; 
+    address public override feeCollector; 
 
     // an address to represent the dex that is exchanging token with the smart vault 
     address public dex;
