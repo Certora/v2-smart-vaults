@@ -1,5 +1,5 @@
 certoraRun ./packages/balancer-fee-collector/contracts/actions/withdraw/Withdrawer.sol \
-    ./packages/certora/munged/SmartVault.sol \
+    ./node_modules/@mimic-fi/v2-smart-vault/contracts/SmartVault.sol \
     ./packages/certora/helpers/ProtocolFeeWithdrawerMock.sol \
     ./node_modules/@mimic-fi/v2-price-oracle/contracts/oracle/PriceOracle.sol \
     ./packages/certora/helpers/ERC20_A.sol \
@@ -18,4 +18,4 @@ certoraRun ./packages/balancer-fee-collector/contracts/actions/withdraw/Withdraw
 --msg "Withdrawer sanity"
 
 
-#sanity https://prover.certora.com/output/47234/589c41b88b5b4c5da0959e521818103c?anonymousKey=5fc0415a9a93315cdb9e1a03eb00da24106e27bd
+#sanity https://prover.certora.com/output/47234/32a33e9084d948b2bb8f036758cf1f20?anonymousKey=0360c117d26be751f909a61b72a298d2c7d9d70a
