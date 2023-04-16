@@ -1,27 +1,16 @@
+import "./Auxiliary.spec"
 
-using ERC20Helper as helper;
-using SymbolicSmartVault as symbolicVault;
+using ParaswapSwapperCaller as caller
+using ERC20_A as erc20A
+using ERC20_B as erc20B
 
 methods {
-
-    function _.balanceOf(address) external          => DISPATCHER(true);
-    function _.allowance(address,address) external  => DISPATCHER(true);
-    function _.approve(address,uint256) external    => DISPATCHER(true);
-    function _.transfer(address,uint256) external   => DISPATCHER(true);
-    function _.transferFrom(address,address,uint256) external => DISPATCHER(true);
-
-    function SymbolicSmartVault.dex() external returns (address)  envfree;
-    function helper.getTokenBalanceOf(address, address) external returns (uint256) envfree;
-
-    function smartVault() external returns (address) envfree;
-
-
-    function tokenOut() external returns (address) envfree;
-    function swapSigner() external returns (address) envfree;
-    function defaultMaxSlippage() external returns (uint256) envfree;
-    function tokenMaxSlippages(address) external returns (uint256) envfree;
-
-
+    // Paraswap Swapper
+    /// @notice: External/public methods of the main contract do not require its name as a prefix.
+    tokenOut() returns (address) envfree;
+    swapSigner() returns (address) envfree;
+    defaultMaxSlippage() returns (uint256) envfree;
+    tokenMaxSlippages(address) returns (uint256) envfree;
 }
 
 /**************************************************
@@ -32,7 +21,30 @@ definition MAX_FEE_PCT() returns uint256 = 1000000000000000000;
 /**************************************************
  *              MISC RULES                     *
  **************************************************/
+rule testSingleAuthorization() {
+    env e1; 
+    env e2;
+    calldataarg args1;
+    calldataarg args2;
+    bytes4 what = setPriceFeed_sig();
+    singleAddressAuthorization_vault(e1.msg.sender, what);
+    SV.setPriceFeed(e1, args1);
+    SV.setPriceFeed(e2, args2);
+    assert e1.msg.sender == e2.msg.sender;
+}
 
+rule testDoubleAuthorization() {
+    env e1; 
+    env e2;
+    calldataarg args1;
+    calldataarg args2;
+    address almighty;
+    bytes4 what = setPriceFeed_sig();
+    doubleAddressAuthorization_vault(e1.msg.sender, almighty, what);
+    SV.setPriceFeed(e1, args1);
+    SV.setPriceFeed(e2, args2);
+    assert e1.msg.sender == e2.msg.sender || e2.msg.sender == almighty;
+}
 
 rule sanity(method f) {
     env e;
@@ -41,31 +53,58 @@ rule sanity(method f) {
     assert false;
 }
 
+/**************************************************
+ *              FEE RULES                        *
+ **************************************************/
+invariant SwapFeeLE100PCT()
+   SwapFeeParameter(pct()) <= MAX_FEE_PCT()
+
+invariant FeeTokenIsNonZero()
+    swapFee_token != 0
 
 /**************************************************
  *              SWAP INTEGRITY RULES              *
  **************************************************/
 /// Correctness of balance updates in tokenIn by swap()
-rule swapIntegrityTokenIn() {
+rule swapIntergrityTokenIn() {
     env e;
     /// swap (call) parameters
-    address tokenIn ;
+    address tokenIn = erc20A;
     uint256 amountIn;
     uint256 minAmountOut;
     uint256 expectedAmountOut;
     uint256 deadline;
     bytes data;
-    bytes signature;
+    bytes sig;
 
-    require smartVault() == symbolicVault; 
+    address vault = smartVault();
 
-    require symbolicVault.dex() != symbolicVault;
-    uint256 balanceInSmartVaultBefore = helper.getTokenBalanceOf(tokenIn,symbolicVault);
+    uint256 balanceInSmartVaultBefore = erc20helper.getTokenBalanceOf(tokenIn, vault);
 
-    call(e, tokenIn, amountIn, minAmountOut,
-            expectedAmountOut, deadline, data, signature);
+    caller.callSwapper(e, tokenIn, amountIn, minAmountOut,
+            expectedAmountOut, deadline, data, sig);
 
-    uint256 balanceInSmartVaultAfter = helper.getTokenBalanceOf(tokenIn,symbolicVault);
+    uint256 balanceInSmartVaultAfter = erc20helper.getTokenBalanceOf(tokenIn, vault);
 
-    assert balanceInSmartVaultBefore - balanceInSmartVaultAfter == to_mathint(amountIn), "SmartVault balance should be decreased by amountIn";
+    assert balanceInSmartVaultBefore - balanceInSmartVaultAfter == amountIn, "SmartVault balance should be decreased by amountIn";
+}
+
+rule swapperRevert() {
+    env e;
+    address tokenIn;
+    uint256 amountIn;
+    uint256 minAmountOut;
+    uint256 expectedAmountOut;
+    uint256 deadline;
+    bytes data;
+    bytes sig;
+
+    caller.callSwapper@withrevert(e, tokenIn, amountIn, minAmountOut,
+            expectedAmountOut, deadline, data, sig);
+
+    bool swap_reverted = lastReverted;
+
+    assert tokenIn == tokenOut() => swap_reverted;
+    assert tokenIn == 0 => swap_reverted;
+    assert expectedAmountOut < minAmountOut => swap_reverted;
 }
