@@ -1,6 +1,9 @@
-
+import "set.spec";
 using ERC20Helper as helper;
 using SymbolicSmartVault as symbolicVault;
+
+use invariant setInvariant 
+
 
 methods {
 
@@ -60,12 +63,30 @@ rule swapIntegrityTokenIn() {
     require smartVault() == symbolicVault; 
 
     require symbolicVault.dex() != symbolicVault;
-    uint256 balanceInSmartVaultBefore = helper.getTokenBalanceOf(tokenIn,symbolicVault);
+    uint256 balanceInSmartVaultBefore = helper.getTokenBalanceOf(tokenIn,currentContract);
 
     call(e, tokenIn, amountIn, minAmountOut,
             expectedAmountOut, deadline, data, signature);
 
-    uint256 balanceInSmartVaultAfter = helper.getTokenBalanceOf(tokenIn,symbolicVault);
+    uint256 balanceInSmartVaultAfter = helper.getTokenBalanceOf(tokenIn,currentContract);
 
     assert balanceInSmartVaultBefore - balanceInSmartVaultAfter == to_mathint(amountIn), "SmartVault balance should be decreased by amountIn";
+}
+
+
+rule swapSucceed(address user) {
+
+    require e.msg.sedner == user; 
+    call@withrevert(e,...);
+    bool  succeed = !lastReverted;
+    assert succeed =>  isAuth(user) ;
+    assert !iaAuth => !succeed;
+}
+
+rule swapSucceed(address user) {
+
+    require e.msg.sender == user; 
+    calldataarg args;
+    call(e,args);
+    isAuth(user) ;
 }
