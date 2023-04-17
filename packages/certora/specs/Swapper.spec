@@ -26,8 +26,7 @@ rule testSingleAuthorization() {
     calldataarg args1;
     calldataarg args2;
     bytes4 what = setPriceFeed_sig();
-    //singleAddressAuthorization_vault(e1.msg.sender, what);
-    require !ghostAuthorized_Vault[ANYADDRESS()][what];
+    singleAddressAuthorization_vault(e1.msg.sender, what);
     SV.setPriceFeed(e1, args1);
     SV.setPriceFeed(e2, args2);
     assert e1.msg.sender == e2.msg.sender;
@@ -40,8 +39,7 @@ rule testDoubleAuthorization() {
     calldataarg args2;
     address almighty;
     bytes4 what = setPriceFeed_sig();
-    //doubleAddressAuthorization_vault(e1.msg.sender, almighty, what);
-    require !ghostAuthorized_Vault[ANYADDRESS()][what];
+    doubleAddressAuthorization_vault(e1.msg.sender, almighty, what);
     SV.setPriceFeed(e1, args1);
     SV.setPriceFeed(e2, args2);
     assert e1.msg.sender == e2.msg.sender || e2.msg.sender == almighty;

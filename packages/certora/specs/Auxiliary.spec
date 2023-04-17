@@ -6,7 +6,6 @@ import "BaseMethods.spec";
 /// Globals:
 definition maxSig() returns bytes4 = to_bytes4(0xffffffff);
 definition maxAddress() returns address = 0xffffffffffffffffffffffffffffffffffffffff;
-definition ANYADDRESS() returns address = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
 /// Function signature:
 definition setPriceFeed_sig() returns bytes4 = to_bytes4(0x67a1d5ab);
@@ -28,13 +27,11 @@ ghost mapping(address => mapping(bytes4 => bool)) ghostAuthorized_Swapper {
 }
 
 hook Sstore authorized[KEY address who][KEY bytes4 what] bool value (bool old_value) STORAGE {
-    bytes4 what_ = what;//(what & maxSig()) >> 224;
-    ghostAuthorized_Swapper[who][what_] = value; 
+    ghostAuthorized_Swapper[who][what] = value; 
 }
 
 hook Sload bool value authorized[KEY address who][KEY bytes4 what] STORAGE {
-    bytes4 what_ = what;//(what & maxSig()) >> 224;
-    require ghostAuthorized_Swapper[who][what_] == value; 
+    require ghostAuthorized_Swapper[who][what] == value; 
 }
 
 /// Authorized mirrored mapping (SmartVault)
@@ -44,7 +41,6 @@ ghost mapping(address => mapping(bytes4 => bool)) ghostAuthorized_Vault {
 }
 
 hook Sstore SmartVaultHarness.authorized[KEY address who][KEY bytes4 what] bool value STORAGE {
-    //bytes4 what_ = what;//(what & maxSig()) >> 224;
     ghostAuthorized_Vault[who][what] = value; 
 }
 
@@ -58,7 +54,7 @@ ghost address swapFee_token;
 ghost address withdrawFee_token;
 
 hook Sload address _token SmartVaultHarness.swapFee.token STORAGE {require swapFee_token == _token;}
-//hook Sload address _token SV.withdrawFee.token STORAGE {require withdrawFee_token == _token;}
+hook Sload address _token SV.withdrawFee.token STORAGE {require withdrawFee_token == _token;}
 
 /**************************************************
  *               CVL FUNCS                        *
@@ -67,14 +63,14 @@ hook Sload address _token SmartVaultHarness.swapFee.token STORAGE {require swapF
 /// for some specific function signature (what).
 function singleAddressAuthorization_vault(address who, bytes4 what) {
     require forall address user. (user != who=> !ghostAuthorized_Vault[user][what]);
-    require !ghostAuthorized_Vault[ANYADDRESS()][what];
+    require !ghostAuthorized_Vault[SV.ANY_ADDRESS()][what];
 }
 
 /// A helper function to set two unique authorized addresses (who1, who2)
 /// for some specific function signature (what).
 function doubleAddressAuthorization_vault(address who1, address who2, bytes4 what) {
     require forall address user. ( (user != who1 && user != who2) => !ghostAuthorized_Vault[user][what]);
-    require !ghostAuthorized_Vault[ANYADDRESS()][what];
+    require !ghostAuthorized_Vault[SV.ANY_ADDRESS()][what];
 }
 
 /// A helper function to set a unique authorized address (who)
@@ -82,7 +78,7 @@ function doubleAddressAuthorization_vault(address who1, address who2, bytes4 wha
 function singleAddressGetsTotalControl_vault(address who) {
     require forall address user.
                 forall bytes4 func_sig. (user != who => !ghostAuthorized_Vault[user][func_sig]);
-    require forall bytes4 func_sig. (!ghostAuthorized_Vault[ANYADDRESS()][func_sig]);
+    require forall bytes4 func_sig. (!ghostAuthorized_Vault[SV.ANY_ADDRESS()][func_sig]);
 }
 
 /// Getter for the SmartVault swapFee struct uint256 parameters.
