@@ -1,16 +1,15 @@
-import "./Auxiliary.spec"
+import "./Auxiliary.spec";
 
-using ParaswapSwapperCaller as caller
-using ERC20_A as erc20A
-using ERC20_B as erc20B
+using ERC20_A as erc20A;
+using ERC20_B as erc20B;
 
 methods {
     // Paraswap Swapper
     /// @notice: External/public methods of the main contract do not require its name as a prefix.
-    tokenOut() returns (address) envfree;
-    swapSigner() returns (address) envfree;
-    defaultMaxSlippage() returns (uint256) envfree;
-    tokenMaxSlippages(address) returns (uint256) envfree;
+    function tokenOut() external returns (address) envfree;
+    function swapSigner() external returns (address) envfree;
+    function defaultMaxSlippage() external returns (uint256) envfree;
+    function tokenMaxSlippages(address) external returns (uint256) envfree;
 }
 
 /**************************************************
@@ -75,18 +74,18 @@ rule swapIntergrityTokenIn() {
     uint256 expectedAmountOut;
     uint256 deadline;
     bytes data;
-    bytes sig;
+    bytes Sig;
 
     address vault = smartVault();
 
-    uint256 balanceInSmartVaultBefore = erc20helper.getTokenBalanceOf(tokenIn, vault);
+    uint256 balanceInSmartVaultBefore = helper.getTokenBalanceOf(tokenIn, vault);
 
-    caller.callSwapper(e, tokenIn, amountIn, minAmountOut,
-            expectedAmountOut, deadline, data, sig);
+    call(e, tokenIn, amountIn, minAmountOut,
+            expectedAmountOut, deadline, data, Sig);
 
-    uint256 balanceInSmartVaultAfter = erc20helper.getTokenBalanceOf(tokenIn, vault);
+    uint256 balanceInSmartVaultAfter = helper.getTokenBalanceOf(tokenIn, vault);
 
-    assert balanceInSmartVaultBefore - balanceInSmartVaultAfter == amountIn, "SmartVault balance should be decreased by amountIn";
+    assert balanceInSmartVaultBefore - balanceInSmartVaultAfter == to_mathint(amountIn), "SmartVault balance should be decreased by amountIn";
 }
 
 rule swapperRevert() {
@@ -97,10 +96,10 @@ rule swapperRevert() {
     uint256 expectedAmountOut;
     uint256 deadline;
     bytes data;
-    bytes sig;
+    bytes Sig;
 
-    caller.callSwapper@withrevert(e, tokenIn, amountIn, minAmountOut,
-            expectedAmountOut, deadline, data, sig);
+    call@withrevert(e, tokenIn, amountIn, minAmountOut,
+            expectedAmountOut, deadline, data, Sig);
 
     bool swap_reverted = lastReverted;
 

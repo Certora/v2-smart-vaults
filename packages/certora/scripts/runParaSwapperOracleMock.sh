@@ -1,1 +1,0 @@
-certoraRun packages/certora/conf/symbolicSmartVault2.conf

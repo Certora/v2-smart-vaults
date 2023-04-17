@@ -265,15 +265,15 @@ rule swapConsistencyTokenOut(env e) {
     require tokenOut == erc20B;
     require feeCol != Dex && feeCol != SV;
 
-    uint256 balanceInDexBefore = helper.getTokenBalanceOf(erc20A,Dex);
-    uint256 balanceInSmartWaltBefore = helper.getTokenBalanceOf(erc20B,SV);
-    uint256 balanceFCBefore = helper.getTokenBalanceOf(erc20B,feeCol);
+    uint256 balanceInDexBefore = helper.getTokenBalanceOf(erc20B, Dex);
+    uint256 balanceInSmartWaltBefore = helper.getTokenBalanceOf(erc20B, SV);
+    uint256 balanceFCBefore = helper.getTokenBalanceOf(erc20B, feeCol);
 
     uint256 amountOut = SV.swap(e, source, tokenIn, tokenOut, amountIn, limitType, limitAmount, data);
     
     uint256 balanceInDexAfter = helper.getTokenBalanceOf(erc20B, Dex);
     uint256 balanceInSmartWaltAfter = helper.getTokenBalanceOf(erc20B, SV);
-    uint256 balanceFCAfter = helper.getTokenBalanceOf(erc20B,feeCol);
+    uint256 balanceFCAfter = helper.getTokenBalanceOf(erc20B, feeCol);
 
     assert balanceInDexBefore + balanceInSmartWaltBefore + balanceFCBefore == balanceInDexAfter + balanceInSmartWaltAfter + balanceFCAfter;
 }
