@@ -2,8 +2,12 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-contract ERC20Helper  {
+contract ERC20Helper {
     function getTokenBalanceOf(address t, address a) external view returns (uint256) {
         return IERC20(t).balanceOf(a);
+    }
+
+    function getERC20Allowance(address token, address owner, address spender) public view returns (uint256) {
+    return IERC20(token).allowance(owner, spender);
     }
 }

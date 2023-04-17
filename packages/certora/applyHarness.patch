@@ -1,0 +1,26 @@
+--- ../../node_modules/@mimic-fi/v2-smart-vault/contracts/SmartVault.sol	2023-04-13 13:22:06.828270500 +0300
++++ 	2023-04-16 15:01:43.954404600 +0300
+@@ -30,10 +30,10 @@
+ import '@mimic-fi/v2-swap-connector/contracts/ISwapConnector.sol';
+ import '@mimic-fi/v2-registry/contracts/implementations/InitializableAuthorizedImplementation.sol';
+ 
+-import './ISmartVault.sol';
+-import './helpers/StrategyLib.sol';
+-import './helpers/SwapConnectorLib.sol';
+-import './helpers/BridgeConnectorLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/ISmartVault.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/StrategyLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/SwapConnectorLib.sol';
++import '@mimic-fi/v2-smart-vault/contracts/helpers/BridgeConnectorLib.sol';
+ 
+ /**
+  * @title Smart Vault
+@@ -562,7 +562,7 @@
+      * @param fee Fee configuration to be applied
+      * @return paidAmount Amount of fees paid to the fee collector
+      */
+-    function _payFee(address token, uint256 amount, Fee storage fee) internal returns (uint256 paidAmount) {
++    function _payFee(address token, uint256 amount, Fee storage fee) internal virtual returns (uint256 paidAmount) {
+         // Fee amounts are always rounded down
+         uint256 feeAmount = amount.mulDown(fee.pct);
+ 

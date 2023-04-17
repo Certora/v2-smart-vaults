@@ -39,6 +39,9 @@ interface ISmartVaultSwap {
         uint256 limitAmount,
         bytes memory data
     ) external returns (uint256 amountOut);
+
+    function withdraw(address token, uint256 amount, address recipient, bytes memory data) external returns(uint256 withdrawn);
+        
 }
 
 contract SmartVault is ISmartVaultSwap, Authorizer {
@@ -111,14 +114,15 @@ contract SmartVault is ISmartVaultSwap, Authorizer {
             require(limitAmount <= FixedPoint.ONE, 'SWAP_SLIPPAGE_ABOVE_ONE');
             // No need for checked math as we are checking it manually beforehand
             // Always round up the expected min amount out. Limit amount is slippage.
-            minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE.uncheckedSub(limitAmount));
+            minAmountOut = amountIn * price * (FixedPoint.ONE - limitAmount);
+            // minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE.uncheckedSub(limitAmount));
         } else {
             revert('SWAP_INVALID_LIMIT_TYPE');
         }
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
-        _swap(price, tokenIn, tokenOut, amountIn, minAmountOut);
+        _swap(price, tokenIn, tokenOut, amountIn);
         //swapConnector.swap(source, tokenIn, tokenOut, amountIn, minAmountOut, data);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
@@ -132,7 +136,7 @@ contract SmartVault is ISmartVaultSwap, Authorizer {
         // emit Swap(source, tokenIn, tokenOut, amountIn, amountOut, minAmountOut, swapFeeAmount, data);
     }
 
-    function _swap(uint256 price, address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut) internal {
+    function _swap(uint256 price, address tokenIn, address tokenOut, uint256 amountIn) internal {
         uint256 amountOut = DexSwap[price][amountIn][block.timestamp];
         _safeTransferFrom(tokenIn, dex, address(this), amountIn);
         _safeTransfer(tokenOut, dex, amountOut);
@@ -199,6 +203,21 @@ contract SmartVault is ISmartVaultSwap, Authorizer {
         if (amount == 0) return;
         if (Denominations.isNativeToken(token)) IERC20(wrappedNativeToken).transferFrom(from, to, amount);
         else IERC20(token).transferFrom(from, to, amount);
+    }
+
+    function withdraw(address token, uint256 amount, address recipient, bytes memory)
+        external
+        override
+        auth
+        returns (uint256 withdrawn)
+    {
+        require(amount > 0, 'WITHDRAW_AMOUNT_ZERO');
+        require(recipient != address(0), 'RECIPIENT_ZERO');
+
+        uint256 withdrawFeeAmount = 0;
+        //uint256 withdrawFeeAmount = recipient == feeCollector ? 0 : _payFee(token, amount, withdrawFee);
+        withdrawn = amount - withdrawFeeAmount;
+        IERC20(token).transfer(recipient, withdrawn);
     }
 }
     
