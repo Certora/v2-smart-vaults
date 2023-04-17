@@ -29,7 +29,6 @@ contract SmartVaultHarness is SmartVault {
             _safeTransfer(token, feeCollector, feeAmount);
             return feeAmount;
         }
-        // Fee amounts are always rounded down
         paidAmount = _symbolicFeeAmount[token][amount];
 
         // Pay fee amount to the fee collector

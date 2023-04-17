@@ -26,7 +26,8 @@ rule testSingleAuthorization() {
     calldataarg args1;
     calldataarg args2;
     bytes4 what = setPriceFeed_sig();
-    singleAddressAuthorization_vault(e1.msg.sender, what);
+    //singleAddressAuthorization_vault(e1.msg.sender, what);
+    require !ghostAuthorized_Vault[ANYADDRESS()][what];
     SV.setPriceFeed(e1, args1);
     SV.setPriceFeed(e2, args2);
     assert e1.msg.sender == e2.msg.sender;
@@ -39,7 +40,8 @@ rule testDoubleAuthorization() {
     calldataarg args2;
     address almighty;
     bytes4 what = setPriceFeed_sig();
-    doubleAddressAuthorization_vault(e1.msg.sender, almighty, what);
+    //doubleAddressAuthorization_vault(e1.msg.sender, almighty, what);
+    require !ghostAuthorized_Vault[ANYADDRESS()][what];
     SV.setPriceFeed(e1, args1);
     SV.setPriceFeed(e2, args2);
     assert e1.msg.sender == e2.msg.sender || e2.msg.sender == almighty;
@@ -91,6 +93,7 @@ rule swapIntergrityTokenIn() {
 rule swapperRevert() {
     env e;
     address tokenIn;
+    address tokenOut = tokenOut();
     uint256 amountIn;
     uint256 minAmountOut;
     uint256 expectedAmountOut;
@@ -103,7 +106,7 @@ rule swapperRevert() {
 
     bool swap_reverted = lastReverted;
 
-    assert tokenIn == tokenOut() => swap_reverted;
+    assert tokenIn == tokenOut => swap_reverted;
     assert tokenIn == 0 => swap_reverted;
     assert expectedAmountOut < minAmountOut => swap_reverted;
 }
