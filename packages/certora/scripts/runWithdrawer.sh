@@ -1,0 +1,1 @@
+certoraRun packages/certora/conf/withdrawer.conf
