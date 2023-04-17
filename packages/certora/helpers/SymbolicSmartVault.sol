@@ -46,9 +46,11 @@ interface ISmartVault  {
         returns (uint256 withdrawn);
 
 
-     function feeCollector() external view returns (address);    
+    function feeCollector() external view returns (address);    
+    function wrappedNativeToken() external view returns (address);
 
-    function call(address target, address token, uint256 amount, uint256 value, bytes memory data)
+
+    function call(address target, bytes memory callData, uint256 value, bytes memory data)
         external
         returns (bytes memory result);
 
@@ -61,7 +63,7 @@ contract SymbolicSmartVault is ISmartVault {
     mapping(address => mapping(address => mapping(uint256 => uint256))) symbolicPrice;
     
 
-    address public wrappedNativeToken;
+    address public override wrappedNativeToken;
 
     address public override feeCollector; 
 
@@ -80,7 +82,8 @@ contract SymbolicSmartVault is ISmartVault {
     mapping (uint256 => mapping(uint256 => uint256)) symbolicMinAmount;
     mapping (address => mapping(uint256 => uint256)) symbolicFeeAmount;
     
-    
+    address public claimingToken;
+    uint256 public claimingAmount;
     
 
     function swap(
@@ -132,29 +135,18 @@ contract SymbolicSmartVault is ISmartVault {
              return amount;
     }
 
-    function call(address target, address token, uint256 amount, uint256 value, bytes memory data)
+    function call(address target, bytes memory callData, uint256 value, bytes memory data)
         external
         override
         returns (bytes memory result)
     {
-        bytes memory callData = _buildData(token, amount);
-        result = Address.functionCallWithValue(target, callData, value, 'SMART_VAULT_ARBITRARY_CALL_FAIL');
-        // emit Call(target, callData, value, result, data);
-    }
-
-    function _buildData(address token, uint256 amount) internal view returns (bytes memory) {
         address[] memory tokens = new address[](1);
-        tokens[0] = token;
+        tokens[0] = claimingToken;
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amount;
-
-        return
-            abi.encodeWithSelector(
-                IProtocolFeeWithdrawer.withdrawCollectedFees.selector,
-                tokens,
-                amounts,
-                address(this)
-            );
+        amounts[0] = claimingAmount;
+        IProtocolFeeWithdrawer(target).withdrawCollectedFees(tokens, amounts, address(this));
+        result = new bytes(0);
+        // emit Call(target, callData, value, result, data);
     }
 }
