@@ -8,5 +8,8 @@ contract ERC20Helper  {
         return IERC20(t).balanceOf(a);
     }
 
+    function castUint32ToBytes4(uint32 a) external view returns (bytes4) {
+        return bytes4(a);
+    }
 
 }
