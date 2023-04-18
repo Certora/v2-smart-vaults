@@ -84,6 +84,7 @@ contract SymbolicSmartVault is ISmartVault {
     
     address public claimingToken;
     uint256 public claimingAmount;
+    address public claimingTarget;
     
 
     function swap(
@@ -145,7 +146,7 @@ contract SymbolicSmartVault is ISmartVault {
 
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = claimingAmount;
-        IProtocolFeeWithdrawer(target).withdrawCollectedFees(tokens, amounts, address(this));
+        IProtocolFeeWithdrawer(claimingTarget).withdrawCollectedFees(tokens, amounts, address(this));
         result = new bytes(0);
         // emit Call(target, callData, value, result, data);
     }
