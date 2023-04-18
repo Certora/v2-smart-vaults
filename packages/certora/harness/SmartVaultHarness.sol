@@ -34,4 +34,8 @@ contract SmartVaultHarness is SmartVault {
         // Pay fee amount to the fee collector
         _safeTransfer(token, feeCollector, paidAmount);
     }
+
+    function payFee(address token, uint256 amount) external returns (uint256) {
+        return _payFee(token, amount, swapFee);
+    }
 }

@@ -17,7 +17,7 @@ contract PriceOracle is IPriceOracle {
     mapping(address => mapping(uint32 => uint256)) private price;
     mapping(address => mapping(address => address)) private feed;
 
-    function getPrice(address feedProvider, address base, address quote) public view override returns (uint256) {
+    function getPrice(address, address base, address quote) public view override returns (uint256) {
         return _getPrice(feed[base][quote],uint32(block.timestamp));
     }
 

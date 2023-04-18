@@ -9,7 +9,8 @@ import "./erc20.spec";
 
  using PriceOracle as oracle;
  using ERC20Helper as helper;
- using SymbolicSmartVault as SV;
+ using SmartVaultHarness as SV;
+ using SwapConnector as SWC;
  using ERC20_A as erc20A;
  using ERC20_B as erc20B;
 
@@ -19,11 +20,13 @@ import "./erc20.spec";
 methods {
     ////////////////////////////////////////
     function SV.withdraw(address,uint256,address,bytes) external returns(uint256);
-    function SV.swap(uint8,address,address,uint256,SymbolicSmartVault.SwapLimit,uint256,bytes) external returns (uint256);
+    function SV.swap(uint8,address,address,uint256,SmartVaultHarness.SwapLimit,uint256,bytes) external returns (uint256);
     function SV.feeCollector() external returns (address) envfree;
-    function SV.dex() external returns (address) envfree;
     function SV.getPrice(address, address) external returns (uint256);
     function SV.wrappedNativeToken() external returns (address) envfree;
+    function SV.ANY_ADDRESS() external returns (address) envfree;
+    function SV.payFee() external returns (uint256);
+    function SWC.getSourceDex(uint8) external returns (address) envfree;
     function isAuthorized(address, bytes4) external returns (bool) envfree;
 
     // Price oracle & helpers
@@ -33,9 +36,8 @@ methods {
     function helper.getERC20Allowance(address, address, address) external returns (uint256) envfree;
     function oracle.mulDownFP(uint256, uint256) external returns (uint256) envfree;
 
-    //Native token helper
+    // Native token helper
     function oracle.getNativeBalanceOf(address) external returns (uint256) envfree;
-    function ANY_ADDRESS() external returns (address) envfree;
 }
 
 /**************************************************
@@ -52,14 +54,15 @@ definition select_setPriceFeeds() returns uint32 = 0x4ed31090;
 // also we can use the following writing:
 //definition select_setPriceFeeds() returns uint32 = sig:setPriceFeeds(address[],address[],address[]).selector;
 
-/*
+
 definition delegateCalls(method f) returns bool = 
     (f.selector == sig:join(address,address[],uint256[],uint256,bytes).selector ||
     f.selector == sig:claim(address,bytes).selector ||
     f.selector == sig:exit(address,address[],uint256[],uint256,bytes).selector ||
-    f.selector == sig:swap(uint8,address,address,uint256,SymbolicSmartVault.SwapLimit,uint256,bytes).selector);
-*/
+    f.selector == sig:swap(uint8,address,address,uint256,SmartVaultHarness.SwapLimit,uint256,bytes).selector);
+
 definition FixedPoint_ONE() returns uint256 = 1000000000000000000;
+definition NativeToken() returns address = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
 /**************************************************
  *                GHOSTS AND HOOKS                *
@@ -86,14 +89,14 @@ hook Sload bool value authorized[KEY address who][KEY bytes4 what] STORAGE {
 // for some specific function signature (what).
 function singleAddressAuthorization(address who, bytes4 what) {
     require forall address user. (user != who => !ghostAuthorized[user][what]);
-    require !ghostAuthorized[ANY_ADDRESS()][what];
+    require !ghostAuthorized[SV.ANY_ADDRESS()][what];
 }
 
 // A helper function to set two unique authorized addresses (who1, who2)
 // for some specific function signature (what).
 function doubleAddressAuthorization(address who1, address who2, bytes4 what) {
     require forall address user. ( (user != who1 && user != who2) => !ghostAuthorized[user][what]);
-    require !ghostAuthorized[ANY_ADDRESS()][what];
+    require !ghostAuthorized[SV.ANY_ADDRESS()][what];
 }
 
 // A helper function to set a unique authorized address (who)
@@ -101,7 +104,7 @@ function doubleAddressAuthorization(address who1, address who2, bytes4 what) {
 function singleAddressGetsTotalControl(address who) {
     require forall address user.
                 forall bytes4 func_sig. (user != who => !ghostAuthorized[user][func_sig]);
-    require forall bytes4 func_sig. (!ghostAuthorized[ANY_ADDRESS()][func_sig]);
+    require forall bytes4 func_sig. (!ghostAuthorized[SV.ANY_ADDRESS()][func_sig]);
 }
 
 /*
@@ -160,7 +163,6 @@ function usePivotForPair(address base, address quote) {
 // account when something can change or who may change
 
 
-
 /**************************************************
  *                METHOD INTEGRITY                *
  **************************************************/
@@ -172,7 +174,7 @@ rule withdrawTransferIntegrity(address token, address to, uint256 amount) {
     address anyUser;
     require anyToken != token;
     require anyUser != SV && anyUser != to;
-    require token != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // not a native token
+    require token != NativeToken(); // not a native token
 
     uint256 toBalance1 = helper.getTokenBalanceOf(token, to);
     uint256 vaultBalance1 = helper.getTokenBalanceOf(token, SV);
@@ -209,7 +211,7 @@ rule withdrawTransferIntegrityOfNativeToken(address nativeToken, address to, uin
     address WRToken = SV.wrappedNativeToken();
     require anyToken != nativeToken;
     require anyUser != SV && anyUser != to;
-    require nativeToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // explicitly a native token
+    require nativeToken == NativeToken(); // explicitly a native token
 
     uint256 toBalance1 = oracle.getNativeBalanceOf(to);
     uint256 vaultBalance1 = oracle.getNativeBalanceOf(SV);
@@ -249,31 +251,69 @@ rule withdrawTransferIntegrityOfNativeToken(address nativeToken, address to, uin
  **************************************************/
 
 // STATUS - verified
-// During swap(), no additional tokens should be gain regarding tokenOut
+// During swap(), no additional tokens should be gained regarding tokenOut
 rule swapConsistencyTokenOut(env e) {
     uint8 source;
-    address tokenIn;
-    address tokenOut;
+    address tokenIn = 0xa;
+    address tokenOut = 0xb;
     uint256 amountIn;
-    SymbolicSmartVault.SwapLimit limitType;
+    SmartVaultHarness.SwapLimit limitType;
     uint256 limitAmount;
     bytes data;
-    address Dex = SV.dex();
+    address Dex = SWC.getSourceDex(source);
     address feeCol = SV.feeCollector();
 
-    require tokenIn == erc20A;
-    require tokenOut == erc20B;
     require feeCol != Dex && feeCol != SV;
 
-    uint256 balanceInDexBefore = helper.getTokenBalanceOf(erc20B, Dex);
-    uint256 balanceInSmartWaltBefore = helper.getTokenBalanceOf(erc20B, SV);
-    uint256 balanceFCBefore = helper.getTokenBalanceOf(erc20B, feeCol);
+    uint256 balanceInDexBefore = helper.getTokenBalanceOf(tokenOut, Dex);
+    uint256 balanceInSmartVaultBefore = helper.getTokenBalanceOf(tokenOut, SV);
+    uint256 balanceFCBefore = helper.getTokenBalanceOf(tokenOut, feeCol);
 
     uint256 amountOut = SV.swap(e, source, tokenIn, tokenOut, amountIn, limitType, limitAmount, data);
     
-    uint256 balanceInDexAfter = helper.getTokenBalanceOf(erc20B, Dex);
-    uint256 balanceInSmartWaltAfter = helper.getTokenBalanceOf(erc20B, SV);
-    uint256 balanceFCAfter = helper.getTokenBalanceOf(erc20B, feeCol);
+    uint256 balanceInDexAfter = helper.getTokenBalanceOf(tokenOut, Dex);
+    uint256 balanceInSmartVaultAfter = helper.getTokenBalanceOf(tokenOut, SV);
+    uint256 balanceFCAfter = helper.getTokenBalanceOf(tokenOut, feeCol);
 
-    assert balanceInDexBefore + balanceInSmartWaltBefore + balanceFCBefore == balanceInDexAfter + balanceInSmartWaltAfter + balanceFCAfter;
+    assert balanceInDexBefore + balanceInSmartVaultBefore + balanceFCBefore == balanceInDexAfter + balanceInSmartVaultAfter + balanceFCAfter;
 }
+
+// Addresses' balances involved in swap should be updated correctly regarding DeX's token, paidFees and amountOut
+rule swapIntergrity() {
+    env e;
+    // swap parameters
+    uint8 source;
+    address tokenIn = 0xa;
+    address tokenOut = 0xb;
+    uint256 amountIn;
+    SmartVaultHarness.SwapLimit limitType;
+    uint256 limitAmount;
+    bytes data;
+    address Dex = SWC.getSourceDex(source);
+    address feeCol = feeCollector();
+
+    uint256 balanceOutDexBefore = helper.getTokenBalanceOf(tokenOut, Dex);
+    uint256 balanceOutSmartVaultBefore = helper.getTokenBalanceOf(tokenOut, currentContract);
+    uint256 balanceFCBefore = helper.getTokenBalanceOf(tokenOut, feeCol);
+
+    storage initialState = lastStorage;
+
+    uint256 amountOut = SV.swap(e, source, tokenIn, tokenOut, amountIn, limitType, limitAmount, data);
+    
+    uint256 balanceOutDexAfter = helper.getTokenBalanceOf(tokenOut, Dex);
+    uint256 balanceOutSmartVaultAfter = helper.getTokenBalanceOf(tokenOut, currentContract);
+    uint256 balanceFCAfter = helper.getTokenBalanceOf(tokenOut, feeCol);
+
+    uint256 amountOutBeforeFees = require_uint256(balanceOutSmartVaultAfter - balanceOutSmartVaultBefore);
+    uint256 paidFees = require_uint256(balanceFCAfter - balanceFCBefore);
+    uint256 feesAndSwapAmount = require_uint256(paidFees + amountOutBeforeFees);
+
+    // roll back to initial state to calculate fees to check their correctness
+    uint256 payFeeResults = SV.payFee(e, tokenOut, feesAndSwapAmount) at initialState;
+
+    assert payFeeResults == paidFees;
+    assert require_uint256(balanceFCAfter - balanceFCBefore) == paidFees, "The change of balance of the fee collector is not equal to the fees.";
+    assert require_uint256(balanceOutDexBefore - balanceOutDexAfter) == feesAndSwapAmount, "Dex balance should be decreased by amountOut.";
+    assert amountOut == require_uint256(balanceOutDexBefore - balanceOutDexAfter - paidFees), "AmountOut should be equal to amountOutBeforeFees + paidFees.";
+}
+
