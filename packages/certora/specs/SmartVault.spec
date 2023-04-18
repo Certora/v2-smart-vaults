@@ -254,8 +254,8 @@ rule withdrawTransferIntegrityOfNativeToken(address nativeToken, address to, uin
 // During swap(), no additional tokens should be gained regarding tokenOut
 rule swapConsistencyTokenOut(env e) {
     uint8 source;
-    address tokenIn = 0xa;
-    address tokenOut = 0xb;
+    address tokenIn;
+    address tokenOut;
     uint256 amountIn;
     SmartVaultHarness.SwapLimit limitType;
     uint256 limitAmount;
@@ -283,14 +283,16 @@ rule swapIntergrity() {
     env e;
     // swap parameters
     uint8 source;
-    address tokenIn = 0xa;
-    address tokenOut = 0xb;
+    address tokenIn;
+    address tokenOut;
     uint256 amountIn;
     SmartVaultHarness.SwapLimit limitType;
     uint256 limitAmount;
     bytes data;
     address Dex = SWC.getSourceDex(source);
     address feeCol = feeCollector();
+    
+    require feeCol != Dex && feeCol != SV;
 
     uint256 balanceOutDexBefore = helper.getTokenBalanceOf(tokenOut, Dex);
     uint256 balanceOutSmartVaultBefore = helper.getTokenBalanceOf(tokenOut, currentContract);
@@ -304,16 +306,15 @@ rule swapIntergrity() {
     uint256 balanceOutSmartVaultAfter = helper.getTokenBalanceOf(tokenOut, currentContract);
     uint256 balanceFCAfter = helper.getTokenBalanceOf(tokenOut, feeCol);
 
-    uint256 amountOutBeforeFees = require_uint256(balanceOutSmartVaultAfter - balanceOutSmartVaultBefore);
     uint256 paidFees = require_uint256(balanceFCAfter - balanceFCBefore);
-    uint256 feesAndSwapAmount = require_uint256(paidFees + amountOutBeforeFees);
+    uint256 amountOutBeforeFees = require_uint256(amountOut + paidFees);
 
     // roll back to initial state to calculate fees to check their correctness
-    uint256 payFeeResults = SV.payFee(e, tokenOut, feesAndSwapAmount) at initialState;
+    uint256 payFeeResults = SV.payFee(e, tokenOut, amountOutBeforeFees) at initialState;
 
     assert payFeeResults == paidFees;
     assert require_uint256(balanceFCAfter - balanceFCBefore) == paidFees, "The change of balance of the fee collector is not equal to the fees.";
-    assert require_uint256(balanceOutDexBefore - balanceOutDexAfter) == feesAndSwapAmount, "Dex balance should be decreased by amountOut.";
+    assert require_uint256(balanceOutDexBefore - balanceOutDexAfter) == amountOutBeforeFees, "Dex balance should be decreased by amountOut.";
     assert amountOut == require_uint256(balanceOutDexBefore - balanceOutDexAfter - paidFees), "AmountOut should be equal to amountOutBeforeFees + paidFees.";
 }
 
