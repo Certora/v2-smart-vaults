@@ -141,13 +141,13 @@ contract SymbolicSmartVault is ISmartVault {
         override
         returns (bytes memory result)
     {
-        address[] memory tokens = new address[](1);
-        tokens[0] = claimingToken;
+        // address[] memory tokens = new address[](1);
+        // tokens[0] = claimingToken;
 
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = claimingAmount;
-        IProtocolFeeWithdrawer(claimingTarget).withdrawCollectedFees(tokens, amounts, address(this));
-        result = new bytes(0);
+        // uint256[] memory amounts = new uint256[](1);
+        // amounts[0] = claimingAmount;
+        // IProtocolFeeWithdrawer(claimingTarget).withdrawCollectedFees(tokens, amounts, address(this));
+        // result = new bytes(0);
         // emit Call(target, callData, value, result, data);
     }
 }
